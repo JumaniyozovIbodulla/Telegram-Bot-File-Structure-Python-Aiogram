@@ -1,0 +1,43 @@
+# Version control & editor files
+.git
+.gitignore
+.gitattributes
+.idea
+.vscode
+.DS_Store
+
+# Python environments & caches
+.venv
+venv
+env
+ENV
+__pycache__
+*.py[cod]
+*$py.class
+*.egg-info
+.pytest_cache
+.mypy_cache
+.ruff_cache
+.coverage
+htmlcov
+
+# Secrets & local databases
+.env
+.env.*
+*.db
+*.db-wal
+*.db-shm
+*.sqlite
+*.sqlite3
+storage
+
+# Dev / test / docs / docker files not needed inside runtime image
+tests
+pyproject.toml
+requirements-dev.txt
+README.md
+LICENSE
+Dockerfile
+compose.yaml
+.dockerignore
+Makefile

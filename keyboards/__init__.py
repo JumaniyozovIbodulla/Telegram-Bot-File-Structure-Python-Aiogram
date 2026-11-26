@@ -1,2 +1,3 @@
-from . import default
-from . import inline
+from .callbacks import AdminCD, FeatureCD, GuestCD, MenuCD
+
+__all__ = ["AdminCD", "FeatureCD", "GuestCD", "MenuCD"]
