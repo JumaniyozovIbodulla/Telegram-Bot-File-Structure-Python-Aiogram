@@ -49,6 +49,7 @@ class Database:
     def __init__(self, db_path: str = "data/bot.db") -> None:
         self.db_path = db_path
         self._conn: aiosqlite.Connection | None = None
+        self._guest_mode_cache: bool | None = None
 
     async def connect(self) -> None:
         """Open the SQLite connection and initialize tables."""
@@ -166,16 +167,26 @@ class Database:
             last_date = today
 
         new_role: UserRole = "admin" if is_admin else row["role"]
-        await self.conn.execute(
-            """
-            UPDATE users
-            SET username = ?, full_name = ?, role = ?,
-                guest_requests_today = ?, last_request_date = ?, updated_at = ?
-            WHERE user_id = ?
-            """,
-            (username, full_name, new_role, requests_today, last_date, now, user_id),
+        needs_update = (
+            row["username"] != username
+            or row["full_name"] != full_name
+            or row["role"] != new_role
+            or row["last_request_date"] != last_date
         )
-        await self.conn.commit()
+
+        updated_at = row["updated_at"]
+        if needs_update:
+            updated_at = now
+            await self.conn.execute(
+                """
+                UPDATE users
+                SET username = ?, full_name = ?, role = ?,
+                    guest_requests_today = ?, last_request_date = ?, updated_at = ?
+                WHERE user_id = ?
+                """,
+                (username, full_name, new_role, requests_today, last_date, now, user_id),
+            )
+            await self.conn.commit()
 
         return UserRecord(
             user_id=user_id,
@@ -186,7 +197,7 @@ class Database:
             guest_requests_today=requests_today,
             last_request_date=last_date,
             created_at=row["created_at"],
-            updated_at=now,
+            updated_at=updated_at,
         )
 
     async def set_user_role(self, user_id: int, role: UserRole) -> None:
@@ -239,12 +250,15 @@ class Database:
         await self.conn.commit()
 
     async def is_guest_mode_enabled(self, default: bool = True) -> bool:
+        if self._guest_mode_cache is not None:
+            return self._guest_mode_cache
         raw = await self.get_setting("guest_mode_enabled")
-        if raw is None:
-            return default
-        return raw.lower() in ("1", "true", "yes", "on")
+        enabled = default if raw is None else raw.lower() in ("1", "true", "yes", "on")
+        self._guest_mode_cache = enabled
+        return enabled
 
     async def set_guest_mode_enabled(self, enabled: bool) -> None:
+        self._guest_mode_cache = enabled
         await self.set_setting("guest_mode_enabled", "true" if enabled else "false")
 
     async def get_stats(self) -> BotStats:

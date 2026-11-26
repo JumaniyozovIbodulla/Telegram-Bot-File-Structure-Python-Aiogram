@@ -3,7 +3,14 @@ from __future__ import annotations
 from typing import Any, Awaitable, Callable
 
 from aiogram import BaseMiddleware
-from aiogram.types import CallbackQuery, Message, TelegramObject, User
+from aiogram.types import (
+    CallbackQuery,
+    InlineQuery,
+    InlineQueryResultsButton,
+    Message,
+    TelegramObject,
+    User,
+)
 
 from data.config import Settings
 from utils.db.database import Database
@@ -38,10 +45,14 @@ class UserContextMiddleware(BaseMiddleware):
         )
 
         if db_user.is_banned:
+            if isinstance(event, Message) and event.guest_query_id:
+                return None
             if isinstance(event, Message):
                 await event.answer("⛔️ Sizning hisobingiz bloklangan.")
             elif isinstance(event, CallbackQuery):
                 await event.answer("⛔️ Sizning hisobingiz bloklangan.", show_alert=True)
+            elif isinstance(event, InlineQuery):
+                await event.answer([], cache_time=5, is_personal=True)
             return None
 
         guest_mode_enabled = await self.db.is_guest_mode_enabled(
@@ -58,6 +69,8 @@ class UserContextMiddleware(BaseMiddleware):
                 allowed = event.data.startswith("guest:upgrade") or event.data.startswith("menu:")
 
             if not allowed:
+                if isinstance(event, Message) and event.guest_query_id:
+                    return None
                 msg = (
                     "🔒 <b>Guest Mode hozircha o'chirilgan.</b>\n"
                     "Botdan to'liq foydalanish uchun /register orqali ro'yxatdan o'ting."
@@ -66,6 +79,16 @@ class UserContextMiddleware(BaseMiddleware):
                     await event.answer(msg)
                 elif isinstance(event, CallbackQuery):
                     await event.answer("Guest Mode o'chirilgan. /register bosing.", show_alert=True)
+                elif isinstance(event, InlineQuery):
+                    await event.answer(
+                        [],
+                        cache_time=0,
+                        is_personal=True,
+                        button=InlineQueryResultsButton(
+                            text="🔒 Ro'yxatdan o'tish (/register)",
+                            start_parameter="register",
+                        ),
+                    )
                 return None
 
         if db_user.is_guest:

@@ -7,7 +7,8 @@ from aiogram.fsm.scene import SceneRegistry
 from data.config import Settings
 from data.loader import create_bot, create_dispatcher
 from handlers import get_root_router
-from keyboards.callbacks import AdminCD, FeatureCD, GuestCD, MenuCD
+from keyboards.callbacks import AdminCD, FeatureCD, GuestCD, InlineCD, MenuCD
+from services import DefaultResponder, ResponderContext
 from states import RegistrationScene
 from utils.db.database import Database
 
@@ -39,6 +40,9 @@ def test_bot_and_dispatcher_factory(monkeypatch: pytest.MonkeyPatch) -> None:
 
     assert bot.default.parse_mode == ParseMode.HTML
     assert "root" in {r.name for r in dp.sub_routers}
+    used_updates = set(dp.resolve_used_update_types())
+    assert "guest_message" in used_updates
+    assert "inline_query" in used_updates
 
 
 def test_callback_data_roundtrip() -> None:
@@ -47,6 +51,7 @@ def test_callback_data_roundtrip() -> None:
         GuestCD(action="upgrade"),
         FeatureCD(demo="draft"),
         AdminCD(action="toggle_guest"),
+        InlineCD(action="refresh"),
     ):
         packed = cd.pack()
         unpacked = type(cd).unpack(packed)
@@ -85,3 +90,16 @@ async def test_database_guest_mode_lifecycle() -> None:
         assert stats.guest_users == 0
     finally:
         await db.close()
+
+
+@pytest.mark.asyncio
+async def test_default_responder() -> None:
+    responder = DefaultResponder()
+    ctx = ResponderContext(
+        user_id=1,
+        user_name="Test User",
+        role="guest",
+        source="guest_message",
+    )
+    reply = await responder.generate("nima bo'ldi?", ctx)
+    assert "nima bo'ldi?" in reply

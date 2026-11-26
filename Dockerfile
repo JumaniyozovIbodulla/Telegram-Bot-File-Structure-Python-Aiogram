@@ -37,6 +37,7 @@ COPY --chown=botuser:botuser filters ./filters
 COPY --chown=botuser:botuser handlers ./handlers
 COPY --chown=botuser:botuser keyboards ./keyboards
 COPY --chown=botuser:botuser middlewares ./middlewares
+COPY --chown=botuser:botuser services ./services
 COPY --chown=botuser:botuser states ./states
 COPY --chown=botuser:botuser utils ./utils
 

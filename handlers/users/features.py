@@ -19,6 +19,7 @@ from aiogram.utils.chat_action import ChatActionSender
 from keyboards.callbacks import FeatureCD, MenuCD
 from keyboards.inline import get_features_inline_keyboard
 from utils.misc.bot_settings import get_bot_full_info
+from utils.misc.helpers import safe_edit_text
 
 router = Router(name="users_features")
 router.message.filter(F.chat.type == ChatType.PRIVATE)
@@ -64,7 +65,8 @@ async def cmd_botinfo(message: Message, bot: Bot) -> None:
 async def cb_features_menu(callback: CallbackQuery) -> None:
     await callback.answer()
     if callback.message:
-        await callback.message.edit_text(
+        await safe_edit_text(
+            callback.message,
             "🚀 <b>aiogram 3.34.0 & Telegram Bot API 10.5</b>\n\n"
             "Sinab ko'rmoqchi bo'lgan funksiyani tanlang:",
             reply_markup=get_features_inline_keyboard(),
@@ -194,7 +196,8 @@ async def cb_demo_checklist(callback: CallbackQuery) -> None:
 async def cb_demo_botinfo(callback: CallbackQuery, bot: Bot) -> None:
     await callback.answer()
     if callback.message:
-        await callback.message.edit_text(
+        await safe_edit_text(
+            callback.message,
             await _format_bot_info(bot),
             reply_markup=get_features_inline_keyboard(),
         )

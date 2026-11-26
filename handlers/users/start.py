@@ -10,7 +10,9 @@ from data.config import Settings
 from keyboards.callbacks import MenuCD
 from keyboards.default import get_main_reply_keyboard
 from keyboards.inline import get_start_inline_keyboard
+from services import build_responder_context, get_responder
 from utils.db.database import UserRecord
+from utils.misc.helpers import safe_edit_text
 
 router = Router(name="users_start")
 router.message.filter(F.chat.type == ChatType.PRIVATE)
@@ -116,7 +118,8 @@ async def cb_menu_home(
     await callback.answer()
     if callback.message:
         name = callback.from_user.full_name
-        await callback.message.edit_text(
+        await safe_edit_text(
+            callback.message,
             _build_welcome_text(name, db_user),
             reply_markup=get_start_inline_keyboard(is_guest=is_guest, is_admin=is_admin),
         )
@@ -132,7 +135,27 @@ async def cb_menu_profile(
 ) -> None:
     await callback.answer()
     if callback.message:
-        await callback.message.edit_text(
+        await safe_edit_text(
+            callback.message,
             _build_profile_text(db_user, settings),
             reply_markup=get_start_inline_keyboard(is_guest=is_guest, is_admin=is_admin),
         )
+
+
+@router.message(F.text & ~F.text.startswith("/"))
+async def handle_private_question(
+    message: Message,
+    db_user: UserRecord,
+    settings: Settings,
+) -> None:
+    """Default fallback responder for free-form text questions in private chat."""
+    name = message.from_user.full_name if message.from_user else db_user.full_name
+    ctx = build_responder_context(
+        user_id=db_user.user_id,
+        user_name=name,
+        db_user=db_user,
+        settings=settings,
+        source="private",
+    )
+    reply_text = await get_responder().generate(message.text or "", ctx)
+    await message.answer(f"🤖 {html.quote(reply_text)}")

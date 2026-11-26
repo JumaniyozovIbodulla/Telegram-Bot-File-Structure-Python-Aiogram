@@ -32,8 +32,11 @@ async def main() -> None:
     throttle_mw = ThrottlingMiddleware(settings=settings)
     dp.message.middleware(user_ctx_mw)
     dp.callback_query.middleware(user_ctx_mw)
+    dp.inline_query.middleware(user_ctx_mw)
+    dp.guest_message.middleware(user_ctx_mw)
     dp.message.middleware(throttle_mw)
     dp.callback_query.middleware(throttle_mw)
+    dp.guest_message.middleware(throttle_mw)
 
     # Register routers & FSM Scenes
     dp.include_router(get_root_router())

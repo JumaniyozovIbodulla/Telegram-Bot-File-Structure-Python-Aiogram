@@ -3,13 +3,32 @@ from __future__ import annotations
 import logging
 
 from aiogram import Bot
-from aiogram.exceptions import TelegramAPIError
+from aiogram.exceptions import TelegramAPIError, TelegramBadRequest
+from aiogram.types import InlineKeyboardMarkup, Message
 
 from data.config import Settings
 from utils.db.database import Database
 from utils.misc.bot_commands import setup_bot_commands
 
 logger = logging.getLogger(__name__)
+
+
+async def safe_edit_text(
+    message: Message,
+    text: str,
+    reply_markup: InlineKeyboardMarkup | None = None,
+) -> bool:
+    """
+    Safely edit a message's text, ignoring Telegram's 'message is not modified' error
+    when a user clicks the same inline button twice.
+    """
+    try:
+        await message.edit_text(text=text, reply_markup=reply_markup)
+        return True
+    except TelegramBadRequest as exc:
+        if "message is not modified" in str(exc).lower():
+            return False
+        raise
 
 
 async def notify_admins(bot: Bot, admin_ids: list[int], text: str) -> None:

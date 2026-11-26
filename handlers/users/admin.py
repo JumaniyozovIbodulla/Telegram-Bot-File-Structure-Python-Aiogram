@@ -10,6 +10,7 @@ from keyboards.callbacks import AdminCD, MenuCD
 from keyboards.inline import get_admin_inline_keyboard
 from utils.db.database import Database
 from utils.misc.bot_settings import apply_bot_settings
+from utils.misc.helpers import safe_edit_text
 
 router = Router(name="users_admin")
 router.message.filter(F.chat.type == ChatType.PRIVATE, IsAdminFilter())
@@ -83,7 +84,8 @@ async def cb_admin_stats(
 ) -> None:
     await callback.answer("Yangilandi")
     if callback.message:
-        await callback.message.edit_text(
+        await safe_edit_text(
+            callback.message,
             await _admin_panel_text(db, guest_mode_enabled),
             reply_markup=get_admin_inline_keyboard(guest_mode_enabled),
         )
@@ -93,6 +95,7 @@ async def cb_admin_stats(
 async def cb_admin_bot_settings(callback: CallbackQuery, bot: Bot) -> None:
     ok, err = await apply_bot_settings(
         bot,
+        supports_inline_queries=False,
         supports_guest_queries=True,
     )
     if ok:
